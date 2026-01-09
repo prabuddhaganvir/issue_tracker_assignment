@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  username  String    @unique
+  email     String    @unique
+  issues    Issue[]   @relation("AuthoredIssues")
+  assigned  Issue[]   @relation("AssignedIssues")
+  comments  Comment[]
+}
+
+model Label {
+  id      String       @id @default(uuid())
+  name    String       @unique
+  color   String
+  issues  IssueLabel[]
+}
+
+model Issue {
+  id          String       @id @default(uuid())
+  title       String
+  description String
+  status      String       @default("OPEN") // OPEN, IN_PROGRESS, CLOSED
+  priority    String       @default("MEDIUM") // LOW, MEDIUM, HIGH
+  version     Int          @default(1)
+  
+  authorId    String
+  author      User         @relation("AuthoredIssues", fields: [authorId], references: [id])
+  
+  assigneeId  String?
+  assignee    User?        @relation("AssignedIssues", fields: [assigneeId], references: [id])
+  
+  comments    Comment[]
+  labels      IssueLabel[]
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model IssueLabel {
+  issueId String
+  labelId String
+  issue   Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  label   Label @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([issueId, labelId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String
+  issueId   String
+  issue     Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+}
